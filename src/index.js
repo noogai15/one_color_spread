@@ -150,7 +150,7 @@ client.on("messageCreate", async (message) => {
         : prev
     );
     message.channel.send(
-      `No color page found for chapter ${chapterNumber}, the closest color spread is ${closestChapter.chapterNumber}`
+      `No color spread found for chapter ${chapterNumber}, the closest is chapter ${closestChapter.chapterNumber}`
     );
     return;
   } else {
