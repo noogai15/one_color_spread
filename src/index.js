@@ -134,7 +134,6 @@ client.on("messageCreate", async (message) => {
     message.reply("Please provide a chapter number");
     return;
   }
-
   console.log("Got chapter number, getting image...");
 
   const chapterNumber = parseInt(argument);
