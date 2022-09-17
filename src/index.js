@@ -51,9 +51,10 @@ const getImage = async (chapterNumber, colorPages) => {
     const response = await axios.get(url);
     const $ = cheerio.load(response.data);
 
-    const imageLink = $("#mw-content-text > div > aside > figure > a").attr(
-      "href"
-    );
+    //get a with title "Chapter + chapterNumber"
+
+    const imageLink = $(".image").attr("href");
+    // if (!imageLink) imageLink = $(".pi-image-thumbnail > a").attr("href");
     return imageLink;
   } catch (error) {
     console.log(error);
