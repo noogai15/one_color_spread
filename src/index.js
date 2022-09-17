@@ -1,5 +1,6 @@
 const cheerio = require("cheerio");
 const axios = require("axios");
+const cmd = "!3d2y";
 
 require("dotenv").config();
 
@@ -15,7 +16,69 @@ const client = new Client({
   ],
 });
 
-const cmd = "!3d2y";
+client.on("ready", () => {
+  console.log("Node: " + process.version);
+  console.log("Username: " + client.user.username);
+});
+
+client.on("messageCreate", async (message) => {
+  console.log("Got message");
+
+  if (message.author.bot) return;
+  if (!message.content.startsWith(cmd)) return;
+
+  const args = message.content.slice(cmd.length).trim().split(/ +/g); //get arguments after command
+  const argument = args[0];
+
+  /* --- RANDOM COLOR SPREAD --- */
+
+  if (argument == "random") {
+    const colorPages = await getColorPagesList();
+
+    message.channel.send({
+      embeds: [
+        {
+          title: `Chapter ${randomChapter(colorPages)}`,
+          image: {
+            url: image,
+          },
+        },
+      ],
+    });
+    return;
+  }
+
+  /* --- SPECIFIC COLOR SPREAD --- */
+
+  if (args.length === 0 || argument === "" || isNaN(argument)) {
+    message.reply("Please provide a chapter number");
+    return;
+  }
+  console.log("Got chapter number, getting image...");
+
+  const chapterNumber = parseInt(argument);
+
+  const colorPages = await getColorPagesList();
+  const image = await getImage(chapterNumber, colorPages);
+
+  image
+    ? message.channel.send({
+        embeds: [
+          {
+            title: `Chapter ${chapterNumber}`,
+            image: {
+              url: image,
+            },
+          },
+        ],
+      })
+    : message.channel.send(
+        `No color spread found for chapter ${chapterNumber}, the closest is chapter ${closestChapter(
+          chapterNumber,
+          colorPages
+        )}`
+      );
+});
 
 const getColorPagesList = async () => {
   try {
@@ -36,8 +99,7 @@ const getColorPagesList = async () => {
     });
     return links;
   } catch (error) {
-    console.log(error);
-    return "Error while fetching color pages list";
+    console.log(`Error while getting color pages list: ${error}`);
   }
 };
 
@@ -50,15 +112,11 @@ const getImage = async (chapterNumber, colorPages) => {
   try {
     const response = await axios.get(url);
     const $ = cheerio.load(response.data);
-
-    //get a with title "Chapter + chapterNumber"
-
     const imageLink = $(".image").attr("href");
-    // if (!imageLink) imageLink = $(".pi-image-thumbnail > a").attr("href");
+
     return imageLink;
   } catch (error) {
-    console.log(error);
-    return "Error while fetching image";
+    console.log(`Error while getting image link: ${error}`);
   }
 };
 
@@ -68,6 +126,20 @@ const getNumber = (str) => {
   const found = str.match(regex);
   return parseInt(found[0].trim());
 };
+
+function closestChapter(chapterNumber, colorPages) {
+  return colorPages.reduce((prev, curr) =>
+    Math.abs(curr.chapterNumber - chapterNumber) <
+    Math.abs(prev.chapterNumber - chapterNumber)
+      ? curr
+      : prev
+  ).chapterNumber;
+}
+
+const randomChapter = (colorPages) =>
+  colorPages[Math.floor(Math.random() * colorPages.length)].chapterNumber;
+
+/* --- EXCEPTIONS --- */
 
 process.on("uncaughtException", (err) => {
   console.error(err);
@@ -94,77 +166,6 @@ process.on("unhandledRejection", (err) => {
     ?.send("Dead" + err)
     .then((message) => process.exit(1))
     .catch(() => console.log("Message failed to send to Bot owner"));
-});
-
-client.on("ready", () => {
-  console.log("Node: " + process.version);
-  console.log("Username: " + client.user.username);
-});
-
-client.on("messageCreate", async (message) => {
-  console.log("Got message");
-  if (message.author.bot) return;
-  if (!message.content.startsWith(cmd)) return;
-
-  const args = message.content.slice(cmd.length).trim().split(/ +/g);
-  const argument = args[0];
-
-  if (argument == "random") {
-    const colorPages = await getColorPagesList();
-
-    const randomPage =
-      colorPages[Math.floor(Math.random() * colorPages.length)];
-
-    const image = await getImage(randomPage.chapterNumber, colorPages);
-
-    message.channel.send({
-      embeds: [
-        {
-          title: `Chapter ${randomPage.chapterNumber}`,
-          image: {
-            url: image,
-          },
-        },
-      ],
-    });
-    return;
-  }
-
-  if (args.length === 0 || argument === "" || isNaN(argument)) {
-    message.reply("Please provide a chapter number");
-    return;
-  }
-  console.log("Got chapter number, getting image...");
-
-  const chapterNumber = parseInt(argument);
-
-  const colorPages = await getColorPagesList();
-  const image = await getImage(chapterNumber, colorPages);
-
-  //If image is null, then suggest the closest chapter
-  if (!image) {
-    const closestChapter = colorPages.reduce((prev, curr) =>
-      Math.abs(curr.chapterNumber - chapterNumber) <
-      Math.abs(prev.chapterNumber - chapterNumber)
-        ? curr
-        : prev
-    );
-    message.channel.send(
-      `No color spread found for chapter ${chapterNumber}, the closest is chapter ${closestChapter.chapterNumber}`
-    );
-    return;
-  } else {
-    message.channel.send({
-      embeds: [
-        {
-          title: `Chapter ${chapterNumber}`,
-          image: {
-            url: image,
-          },
-        },
-      ],
-    });
-  }
 });
 
 client.login(process.env.BOT_TOKEN);
