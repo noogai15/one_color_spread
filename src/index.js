@@ -34,11 +34,13 @@ client.on("messageCreate", async (message) => {
 
   if (argument == "random") {
     const colorPages = await getColorPagesList();
+    const chapterNumber = randomChapter(colorPages);
+    const image = await getImage(chapterNumber, colorPages);
 
     message.channel.send({
       embeds: [
         {
-          title: `Chapter ${randomChapter(colorPages)}`,
+          title: `Chapter ${chapterNumber}`,
           image: {
             url: image,
           },
